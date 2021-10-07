@@ -1,0 +1,108 @@
+- name: apt install gpg
+  apt:
+    pkg:
+      - gpg
+    update_cache: true
+
+- name: remove IP from hosts
+  lineinfile:
+    path: /etc/hosts
+    regexp: "^127.0.1.1"
+    state: absent
+
+- name: add IP to hosts
+  lineinfile:
+    line: "{{ ansible_default_ipv4.address }}    {{ inventory_hostname }} {{ ansible_hostname }}"
+    path: /etc/hosts
+
+- name: add apt key
+  apt_key:
+    url: http://download.proxmox.com/debian/proxmox-ve-release-6.x.gpg
+
+- name: add pve repo
+  template:
+    src: apt_repo.j2
+    dest: /etc/apt/sources.list.d/pve-install-repo.list
+  register: pct_repo_add
+
+- name: upgrade system
+  apt:
+    upgrade: true
+    update_cache: true
+    autoclean: true
+  when: pct_repo_add.changed
+
+- name: apt install proxmoxer
+  apt:
+    name:
+      - python-proxmoxer
+      - proxmox-ve
+    update_cache: true
+
+- name: delete pve-enterprise repo from apt
+  file:
+    path: /etc/apt/sources.list.d/pve-enterprise.list
+    state: absent
+  when: not proxmox_enterprise
+
+- name: "proxmox : select path of iso storage"
+  shell: "grep -A 1 'dir: {{ proxmox_iso_storage }}' /etc/pve/storage.cfg | tail -n 1 | awk '{print $2}'"
+  register: proxmox_select_path_iso_storage
+
+- name: "proxmox : path_iso_storage"
+  set_fact:
+    proxmox_iso_path: "{{ proxmox_select_path_iso_storage.stdout }}"
+
+- name: download_iso
+  get_url:
+    url: "{{ iso }}"
+    dest: "{{ proxmox_iso_path }}/template/iso/"
+    validate_certs: False
+  loop: "{{ proxmox_iso }}"
+  loop_control:
+    loop_var: iso
+  when: proxmox_iso is defined
+
+- name: create CT
+  proxmox:
+    api_host: localhost
+    api_password: "{{ proxmox_api_password }}"
+    api_user: root@pam
+    cores: "{{ ct.cpu | defaults(pct_cpu) }}"
+    cpus: "{{ ct.cpu | defaults(pct_cpu) }}"
+    disk: "{{ ct.disk | defaults(pct_disk) }}"
+    hostname: "{{ ct.hostname }}"
+    memory: "{{ ct.memory | defaults(pct_memory) }}"
+    nameserver: "{{ ct.nameserver | defaults(pct_nameserver) }}"
+    netif: "{{ ct.netif }}"
+    node: "{{ pct_node }}"
+    onboot: "{{ ct.onboot | defaults(pct_onboot) }}"
+    ostemplate: "{{ ct.ostemplate | defaults(pct_ostemplate) }}"
+    pubkey: "{{ pct_pubkey }}"
+    swap: "{{ ct.swap | defaults(pct_swap) }}"
+    # searchdomain: "{% if item.searchdomain is defined %}{{ item.searchdomain }}{% else %}{{ pct_searchdomain }}{% endif %}"
+    storage: "{{ ct.storage | defaults(pct_storage) }}"
+    unprivileged: "{{ ct.unprivileged | defaults(pct_unprivileged) }}"
+    vmid: "{{ ct.vmid }}"
+  when: pct is defined
+  loop: "{{ pct }}"
+  loop_control:
+    loop_var: ct
+
+- name: extra_options
+  include: extra_options.yml
+  loop: "{{ pct }}"
+  loop_control:
+    loop_var: ct
+
+- name: start CT
+  proxmox:
+    api_host: localhost
+    api_password: "{{ proxmox_api_password }}"
+    api_user: root@pam
+    vmid: "{{ ct.vmid }}"
+    state: started
+  when: pct is defined
+  loop: "{{ pct }}"
+  loop_control:
+    loop_var: ct

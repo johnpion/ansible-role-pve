@@ -1,0 +1,6 @@
+- name: extra options
+  lineinfile:
+    line: "{{ item }}"
+    path: "/etc/pve/lxc/{{ pct.vmid }}.conf"
+  loop: "{{ pct.extra_options }}"
+  when: pct.extra_options is defined
