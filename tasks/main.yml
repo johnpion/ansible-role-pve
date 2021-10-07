@@ -45,11 +45,11 @@
     state: absent
   when: not proxmox_enterprise
 
-- name: "proxmox : select path of iso storage"
+- name: select path of iso storage
   shell: "grep -A 1 'dir: {{ proxmox_iso_storage }}' /etc/pve/storage.cfg | tail -n 1 | awk '{print $2}'"
   register: proxmox_select_path_iso_storage
 
-- name: "proxmox : path_iso_storage"
+- name: path_iso_storage
   set_fact:
     proxmox_iso_path: "{{ proxmox_select_path_iso_storage.stdout }}"
 
@@ -68,32 +68,34 @@
     api_host: localhost
     api_password: "{{ proxmox_api_password }}"
     api_user: root@pam
-    cores: "{{ ct.cpu | defaults(pct_cpu) }}"
-    cpus: "{{ ct.cpu | defaults(pct_cpu) }}"
-    disk: "{{ ct.disk | defaults(pct_disk) }}"
+    cores: "{{ ct.cpu|default(pct_cpu) }}"
+    cpus: "{{ ct.cpu|default(pct_cpu) }}"
+    disk: "{{ ct.disk|default(pct_disk) }}"
     hostname: "{{ ct.hostname }}"
-    memory: "{{ ct.memory | defaults(pct_memory) }}"
-    nameserver: "{{ ct.nameserver | defaults(pct_nameserver) }}"
+    memory: "{{ ct.memory|default(pct_memory) }}"
+    nameserver: "{{ ct.nameserver|default(pct_nameserver) }}"
     netif: "{{ ct.netif }}"
     node: "{{ pct_node }}"
-    onboot: "{{ ct.onboot | defaults(pct_onboot) }}"
-    ostemplate: "{{ ct.ostemplate | defaults(pct_ostemplate) }}"
+    onboot: "{{ ct.onboot|default(pct_onboot) }}"
+    ostemplate: "{{ ct.ostemplate|default(pct_ostemplate) }}"
     pubkey: "{{ pct_pubkey }}"
-    swap: "{{ ct.swap | defaults(pct_swap) }}"
+    swap: "{{ ct.swap|default(pct_swap) }}"
     # searchdomain: "{% if item.searchdomain is defined %}{{ item.searchdomain }}{% else %}{{ pct_searchdomain }}{% endif %}"
-    storage: "{{ ct.storage | defaults(pct_storage) }}"
-    unprivileged: "{{ ct.unprivileged | defaults(pct_unprivileged) }}"
+    storage: "{{ ct.storage|default(pct_storage) }}"
+    unprivileged: "{{ ct.unprivileged|default(pct_unprivileged) }}"
     vmid: "{{ ct.vmid }}"
   when: pct is defined
   loop: "{{ pct }}"
   loop_control:
     loop_var: ct
+  tags: pct_create
 
-- name: extra_options
+- name: CT extra_options
   include: extra_options.yml
   loop: "{{ pct }}"
   loop_control:
     loop_var: ct
+  when: pct is defined
 
 - name: start CT
   proxmox:
