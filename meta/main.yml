@@ -1,0 +1,8 @@
+galaxy_info:
+  author:     John Seregin seregin.john@gmail.com
+  license:    license Apache-2.0
+
+  platforms:
+  - name:     Debian
+    versions:
+    - buster
