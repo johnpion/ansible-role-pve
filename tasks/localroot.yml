@@ -1,0 +1,15 @@
+- name: set sudo
+  lineinfile:
+    path: /etc/sudoers
+    line: "%sudo ALL=(ALL) NOPASSWD: ALL"
+
+- name: create user 'localroot'
+  user:
+    user: localroot
+    groups: sudo
+    shell: /bin/bash
+
+- name: add ssh key for user 'localroot'
+  authorized_key:
+    user: localroot
+    key: "{{ pct_pubkey }}"

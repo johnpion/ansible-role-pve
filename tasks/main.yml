@@ -32,10 +32,13 @@
     autoclean: true
   when: pct_repo_add.changed
 
-- name: apt install proxmoxer
+- name: localroot
+  include: localroot.yml
+
+- name: apt install proxmox
   apt:
     name:
-      - python-proxmoxer
+      - python3-proxmoxer
       - proxmox-ve
     update_cache: true
 
