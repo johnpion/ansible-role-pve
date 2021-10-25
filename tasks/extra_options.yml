@@ -1,6 +1,10 @@
+- debug: msg="{{ ct }}"
+
 - name: extra options
   lineinfile:
-    line: "{{ item }}"
-    path: "/etc/pve/lxc/{{ pct.vmid }}.conf"
-  loop: "{{ pct.extra_options }}"
-  when: pct.extra_options is defined
+    line: "{{ option }}"
+    path: "/etc/pve/lxc/{{ ct.vmid }}.conf"
+  loop: "{{ ct.extra_options }}"
+  loop_control:
+    loop_var: option
+  when: ct.extra_options is defined

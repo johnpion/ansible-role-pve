@@ -1,0 +1,17 @@
+
+- name: select path of iso storage
+  shell: "grep -A 1 'dir: {{ proxmox_iso_storage }}' /etc/pve/storage.cfg | tail -n 1 | awk '{print $2}'"
+  register: proxmox_select_path_iso_storage
+
+- name: path_iso_storage
+  set_fact:
+    proxmox_iso_path: "{{ proxmox_select_path_iso_storage.stdout }}"
+
+- name: download_iso
+  get_url:
+    url: "{{ iso }}"
+    dest: "{{ proxmox_iso_path }}/template/iso/"
+    validate_certs: False
+  loop: "{{ proxmox_iso }}"
+  loop_control:
+    loop_var: iso

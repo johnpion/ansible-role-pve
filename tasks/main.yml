@@ -1,8 +1,8 @@
-- name: apt install gpg
-  apt:
-    pkg:
-      - gpg
-    update_cache: true
+# - name: apt install gpg
+#   apt:
+#     pkg:
+#       - gpg
+#     update_cache: true
 
 - name: remove IP from hosts
   lineinfile:
@@ -15,14 +15,19 @@
     line: "{{ ansible_default_ipv4.address }}    {{ inventory_hostname }} {{ ansible_hostname }}"
     path: /etc/hosts
 
-- name: add apt key
-  apt_key:
-    url: http://download.proxmox.com/debian/proxmox-ve-release-6.x.gpg
+# - name: add apt key
+#   apt_key:
+#     url: http://download.proxmox.com/debian/proxmox-ve-release-6.x.gpg
+#
+# - name: add pve repo
+#   template:
+#     src: apt_repo.j2
+#     dest: /etc/apt/sources.list.d/pve-install-repo.list
+#   register: pct_repo_add
 
 - name: add pve repo
-  template:
-    src: apt_repo.j2
-    dest: /etc/apt/sources.list.d/pve-install-repo.list
+  apt_repository:
+    repo: "deb http://download.proxmox.com/debian/pve {{ ansible_distribution_release }} pve-no-subscription"
   register: pct_repo_add
 
 - name: upgrade system
@@ -34,6 +39,7 @@
 
 - name: localroot
   include: localroot.yml
+  when: pct_pubkey is defined
 
 - name: apt install proxmox
   apt:
@@ -48,22 +54,8 @@
     state: absent
   when: not proxmox_enterprise
 
-- name: select path of iso storage
-  shell: "grep -A 1 'dir: {{ proxmox_iso_storage }}' /etc/pve/storage.cfg | tail -n 1 | awk '{print $2}'"
-  register: proxmox_select_path_iso_storage
-
-- name: path_iso_storage
-  set_fact:
-    proxmox_iso_path: "{{ proxmox_select_path_iso_storage.stdout }}"
-
-- name: download_iso
-  get_url:
-    url: "{{ iso }}"
-    dest: "{{ proxmox_iso_path }}/template/iso/"
-    validate_certs: False
-  loop: "{{ proxmox_iso }}"
-  loop_control:
-    loop_var: iso
+- name: ISO
+  include: iso.yml
   when: proxmox_iso is defined
 
 - name: create CT
