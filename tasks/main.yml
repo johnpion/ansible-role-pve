@@ -1,9 +1,3 @@
-# - name: apt install gpg
-#   apt:
-#     pkg:
-#       - gpg
-#     update_cache: true
-
 - name: remove IP from hosts
   lineinfile:
     path: /etc/hosts
@@ -15,15 +9,15 @@
     line: "{{ ansible_default_ipv4.address }}    {{ inventory_hostname }} {{ ansible_hostname }}"
     path: /etc/hosts
 
-# - name: add apt key
-#   apt_key:
-#     url: http://download.proxmox.com/debian/proxmox-ve-release-6.x.gpg
-#
-# - name: add pve repo
-#   template:
-#     src: apt_repo.j2
-#     dest: /etc/apt/sources.list.d/pve-install-repo.list
-#   register: pct_repo_add
+- name: apt install gpg
+  apt:
+    pkg:
+      - gpg
+    update_cache: true
+
+- name: add apt key
+  apt_key:
+    url: http://download.proxmox.com/debian/proxmox-ve-release-6.x.gpg
 
 - name: add pve repo
   apt_repository:
