@@ -1,5 +1,3 @@
-- debug: msg="{{ ct }}"
-
 - name: extra options
   lineinfile:
     line: "{{ option }}"

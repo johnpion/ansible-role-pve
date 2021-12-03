@@ -48,8 +48,7 @@
     state: absent
   when: not proxmox_enterprise
 
-- name: ISO
-  include: iso.yml
+- include: iso.yml
   when: proxmox_iso is defined
 
 - name: create CT
