@@ -1,15 +1,15 @@
-- name: set sudo
-  lineinfile:
+- name: Set sudo
+  ansible.builtin.lineinfile:
     path: /etc/sudoers
     line: "%sudo ALL=(ALL) NOPASSWD: ALL"
 
-- name: create user 'localroot'
-  user:
+- name: Create user 'localroot'
+  ansible.builtin.user:
     user: localroot
     groups: sudo
     shell: /bin/bash
 
-- name: add ssh key for user 'localroot'
-  authorized_key:
+- name: Add ssh key for user 'localroot'
+  ansible.posix.authorized_key:
     user: localroot
     key: "{{ pct_pubkey }}"

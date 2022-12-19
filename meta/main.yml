@@ -1,8 +1,11 @@
 galaxy_info:
-  author:     John Seregin seregin.john@gmail.com
-  license:    license Apache-2.0
-
+  author: John Seregin seregin.john@gmail.com
+  license: license Apache-2.0
+  namespace: johnpion
+  role_name: pve
+  description: Proxmox VE
+  min_ansible_version: "2.9"
   platforms:
-  - name:     Debian
-    versions:
-    - buster
+    - name: Debian
+      versions:
+        - buster

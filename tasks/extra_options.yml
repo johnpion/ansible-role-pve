@@ -1,5 +1,5 @@
-- name: extra options
-  lineinfile:
+- name: Extra options
+  ansible.builtin.lineinfile:
     line: "{{ option }}"
     path: "/etc/pve/lxc/{{ ct.vmid }}.conf"
   loop: "{{ ct.extra_options }}"

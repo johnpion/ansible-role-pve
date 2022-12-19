@@ -1,76 +1,77 @@
-- name: remove IP from hosts
-  lineinfile:
+- name: Remove IP from hosts
+  ansible.builtin.lineinfile:
     path: /etc/hosts
     regexp: "^127.0.1.1"
     state: absent
 
-- name: add IP to hosts
-  lineinfile:
+- name: Add IP to hosts
+  ansible.builtin.lineinfile:
     line: "{{ ansible_default_ipv4.address }}    {{ inventory_hostname }} {{ ansible_hostname }}"
     path: /etc/hosts
 
-- name: apt install gpg
-  apt:
+- name: Apt install gpg
+  ansible.builtin.apt:
     pkg:
       - gpg
     update_cache: true
 
-- name: add apt key
-  apt_key:
+- name: Add apt key
+  ansible.builtin.apt_key:
     url: http://download.proxmox.com/debian/proxmox-ve-release-6.x.gpg
 
-- name: add pve repo
-  apt_repository:
+- name: Add pve repo
+  ansible.builtin.apt_repository:
     repo: "deb http://download.proxmox.com/debian/pve {{ ansible_distribution_release }} pve-no-subscription"
   register: pct_repo_add
 
-- name: upgrade system
-  apt:
+- name: Upgrade system
+  ansible.builtin.apt:
     upgrade: true
     update_cache: true
     autoclean: true
   when: pct_repo_add.changed
 
-- name: localroot
-  include: localroot.yml
+- name: Tasks for localroot
+  ansible.builtin.include_tasks: localroot.yml
   when: pct_pubkey is defined
 
-- name: apt install proxmox
-  apt:
+- name: Apt install proxmox
+  ansible.builtin.apt:
     name:
       - python3-proxmoxer
       - proxmox-ve
     update_cache: true
 
-- name: delete pve-enterprise repo from apt
-  file:
+- name: Delete pve-enterprise repo from apt
+  ansible.builtin.file:
     path: /etc/apt/sources.list.d/pve-enterprise.list
     state: absent
   when: not proxmox_enterprise
 
-- include: iso.yml
+- name: Tasks for ISO
+  ansible.builtin.include_tasks: iso.yml
   when: proxmox_iso is defined
 
-- name: create CT
-  proxmox:
+- name: Create CT
+  community.general.cloud.misc.proxmox:
     api_host: localhost
     api_password: "{{ proxmox_api_password }}"
     api_user: root@pam
-    cores: "{{ ct.cpu|default(pct_cpu) }}"
-    cpus: "{{ ct.cpu|default(pct_cpu) }}"
-    disk: "{{ ct.disk|default(pct_disk) }}"
+    cores: "{{ ct.cpu | default(pct_cpu) }}"
+    cpus: "{{ ct.cpu | default(pct_cpu) }}"
+    disk: "{{ ct.disk | default(pct_disk) }}"
     hostname: "{{ ct.hostname }}"
-    memory: "{{ ct.memory|default(pct_memory) }}"
-    nameserver: "{{ ct.nameserver|default(pct_nameserver) }}"
+    memory: "{{ ct.memory | default(pct_memory) }}"
+    nameserver: "{{ ct.nameserver | default(pct_nameserver) }}"
     netif: "{{ ct.netif }}"
     node: "{{ pct_node }}"
-    onboot: "{{ ct.onboot|default(pct_onboot) }}"
-    ostemplate: "{{ ct.ostemplate|default(pct_ostemplate) }}"
+    onboot: "{{ ct.onboot | default(pct_onboot) }}"
+    ostemplate: "{{ ct.ostemplate | default(pct_ostemplate) }}"
     pubkey: "{{ pct_pubkey }}"
-    swap: "{{ ct.swap|default(pct_swap) }}"
+    swap: "{{ ct.swap | default(pct_swap) }}"
     # searchdomain: "{% if item.searchdomain is defined %}{{ item.searchdomain }}{% else %}{{ pct_searchdomain }}{% endif %}"
-    storage: "{{ ct.storage|default(pct_storage) }}"
-    unprivileged: "{{ ct.unprivileged|default(pct_unprivileged) }}"
+    storage: "{{ ct.storage | default(pct_storage) }}"
+    unprivileged: "{{ ct.unprivileged | default(pct_unprivileged) }}"
     vmid: "{{ ct.vmid }}"
   when: pct is defined
   loop: "{{ pct }}"
@@ -79,14 +80,14 @@
   tags: pct_create
 
 - name: CT extra_options
-  include: extra_options.yml
+  ansible.builtin.include_tasks: extra_options.yml
   loop: "{{ pct }}"
   loop_control:
     loop_var: ct
   when: pct is defined
 
-- name: start CT
-  proxmox:
+- name: Start CT
+  community.general.cloud.misc.proxmox:
     api_host: localhost
     api_password: "{{ proxmox_api_password }}"
     api_user: root@pam
