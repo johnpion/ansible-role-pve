@@ -1,0 +1,8 @@
+- name: Extra options
+  ansible.builtin.lineinfile:
+    line: "{{ option }}"
+    path: "/etc/pve/lxc/{{ ct.vmid }}.conf"
+  loop: "{{ ct.extra_options }}"
+  loop_control:
+    loop_var: option
+  when: ct.extra_options is defined

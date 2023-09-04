@@ -1,0 +1,18 @@
+- name: Select path of iso storage
+  ansible.builtin.shell: "grep -A 1 'dir: {{ proxmox_iso_storage }}' /etc/pve/storage.cfg | tail -n 1 | awk '{print $2}'"
+  register: proxmox_select_path_iso_storage
+  tags: skip_ansible_lint
+
+- name: Set path iso storage
+  ansible.builtin.set_fact:
+    proxmox_iso_path: "{{ proxmox_select_path_iso_storage.stdout }}"
+
+- name: Download iso
+  ansible.builtin.get_url:
+    url: "{{ iso }}"
+    dest: "{{ proxmox_iso_path }}/template/iso/"
+    validate_certs: false
+    mode: "0755"
+  loop: "{{ proxmox_iso }}"
+  loop_control:
+    loop_var: iso

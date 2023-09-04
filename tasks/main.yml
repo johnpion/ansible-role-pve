@@ -1,0 +1,104 @@
+- name: Remove IP from hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: "^127.0.1.1"
+    state: absent
+
+- name: Add IP to hosts
+  ansible.builtin.lineinfile:
+    line: "{{ ansible_default_ipv4.address }}    {{ inventory_hostname }} {{ ansible_hostname }}"
+    path: /etc/hosts
+
+- name: Apt install gpg
+  ansible.builtin.apt:
+    pkg:
+      - gpg
+    update_cache: true
+
+- name: Add apt key
+  ansible.builtin.apt_key:
+    url: http://download.proxmox.com/debian/proxmox-release-bullseye.gpg
+
+- name: Add pve repo
+  ansible.builtin.apt_repository:
+    repo: "deb http://download.proxmox.com/debian/pve {{ ansible_distribution_release }} pve-no-subscription"
+  register: pct_repo_add
+
+- name: Upgrade system
+  ansible.builtin.apt:
+    upgrade: true
+    update_cache: true
+    autoclean: true
+  when: pct_repo_add.changed
+  tags: skip_ansible_lint
+
+- name: Tasks for localroot
+  ansible.builtin.include_tasks: localroot.yml
+  when: pct_pubkey is defined
+
+- name: Apt install proxmox
+  ansible.builtin.apt:
+    name:
+      - python3-proxmoxer
+      - proxmox-ve
+    update_cache: true
+
+- name: Delete pve-enterprise repo from apt
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d/pve-enterprise.list
+    state: absent
+  when: not proxmox_enterprise
+
+- name: Tasks for ISO
+  ansible.builtin.include_tasks: iso.yml
+  when: proxmox_iso is defined
+
+- name: Create CT
+  delegate_to: localhost
+  community.general.proxmox:
+    api_host: "{{ inventory_hostname }}"
+    api_user: root@pam
+    api_token_id: ansible
+    api_token_secret: "{{ proxmox_api_token_secret }}"
+    cores: "{{ ct.cpu | default(pct_cpu) }}"
+    cpus: "{{ ct.cpu | default(pct_cpu) }}"
+    disk: "{{ ct.disk | default(pct_disk) }}"
+    hostname: "{{ ct.hostname }}"
+    memory: "{{ ct.memory | default(pct_memory) }}"
+    nameserver: "{{ ct.nameserver | default(pct_nameserver) }}"
+    netif: "{{ ct.netif }}"
+    node: "{{ pct_node }}"
+    onboot: "{{ ct.onboot | default(pct_onboot) }}"
+    ostemplate: "{{ ct.ostemplate | default(pct_ostemplate) }}"
+    pubkey: "{{ pct_pubkey }}"
+    swap: "{{ ct.swap | default(pct_swap) }}"
+    # searchdomain: "{% if item.searchdomain is defined %}{{ item.searchdomain }}{% else %}{{ pct_searchdomain }}{% endif %}"
+    # storage: "{{ ct.storage | default(pct_storage) }}"
+    unprivileged: "{{ ct.unprivileged | default(pct_unprivileged) }}"
+    vmid: "{{ ct.vmid }}"
+  when: pct is defined
+  loop: "{{ pct }}"
+  loop_control:
+    loop_var: ct
+  tags: pct_create
+
+- name: CT extra_options
+  ansible.builtin.include_tasks: extra_options.yml
+  loop: "{{ pct }}"
+  loop_control:
+    loop_var: ct
+  when: pct is defined
+
+- name: Start CT
+  delegate_to: "{{ ansible_server }}"
+  community.general.proxmox:
+    api_host: "{{ inventory_hostname }}"
+    api_user: root@pam
+    api_token_id: ansible
+    api_token_secret: "{{ proxmox_api_token_secret }}"
+    vmid: "{{ ct.vmid }}"
+    state: started
+  when: pct is defined
+  loop: "{{ pct }}"
+  loop_control:
+    loop_var: ct
