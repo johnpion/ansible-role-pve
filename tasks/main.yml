@@ -17,7 +17,7 @@
 
 - name: Add apt key
   ansible.builtin.apt_key:
-    url: http://download.proxmox.com/debian/proxmox-ve-release-6.x.gpg
+    url: http://download.proxmox.com/debian/proxmox-release-bullseye.gpg
 
 - name: Add pve repo
   ansible.builtin.apt_repository:
@@ -30,6 +30,7 @@
     update_cache: true
     autoclean: true
   when: pct_repo_add.changed
+  tags: skip_ansible_lint
 
 - name: Tasks for localroot
   ansible.builtin.include_tasks: localroot.yml
@@ -53,10 +54,12 @@
   when: proxmox_iso is defined
 
 - name: Create CT
-  community.general.cloud.misc.proxmox:
-    api_host: localhost
-    api_password: "{{ proxmox_api_password }}"
+  delegate_to: localhost
+  community.general.proxmox:
+    api_host: "{{ inventory_hostname }}"
     api_user: root@pam
+    api_token_id: ansible
+    api_token_secret: "{{ proxmox_api_token_secret }}"
     cores: "{{ ct.cpu | default(pct_cpu) }}"
     cpus: "{{ ct.cpu | default(pct_cpu) }}"
     disk: "{{ ct.disk | default(pct_disk) }}"
@@ -70,7 +73,7 @@
     pubkey: "{{ pct_pubkey }}"
     swap: "{{ ct.swap | default(pct_swap) }}"
     # searchdomain: "{% if item.searchdomain is defined %}{{ item.searchdomain }}{% else %}{{ pct_searchdomain }}{% endif %}"
-    storage: "{{ ct.storage | default(pct_storage) }}"
+    # storage: "{{ ct.storage | default(pct_storage) }}"
     unprivileged: "{{ ct.unprivileged | default(pct_unprivileged) }}"
     vmid: "{{ ct.vmid }}"
   when: pct is defined
@@ -87,10 +90,12 @@
   when: pct is defined
 
 - name: Start CT
-  community.general.cloud.misc.proxmox:
-    api_host: localhost
-    api_password: "{{ proxmox_api_password }}"
+  delegate_to: "{{ ansible_server }}"
+  community.general.proxmox:
+    api_host: "{{ inventory_hostname }}"
     api_user: root@pam
+    api_token_id: ansible
+    api_token_secret: "{{ proxmox_api_token_secret }}"
     vmid: "{{ ct.vmid }}"
     state: started
   when: pct is defined

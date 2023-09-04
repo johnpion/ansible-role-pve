@@ -12,3 +12,4 @@ pct_unprivileged: false
 proxmox_enterprise: false
 pct_swap: 1024
 # proxmox_iso:
+# ansible_server:
